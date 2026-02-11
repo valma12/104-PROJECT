@@ -1,13 +1,56 @@
 ---
-title: "104 rmd"
+title: "Econ 104 Course Project"
 author: "Valeria Meza, Brianna P, Sara"
 date: "2026-02-11"
-output: html_document
+output: html_document:
+  toc: true
+    toc_float: true
+    number_sections: true
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+library(tidyverse)
+library(Boruta)
+library(car)
+library(lmtest)
+library(sandwich)
+library(tseries)
+library(boot)
+library(caret)
+
+set.seed(123)
+
+```markdown
+## Introduction
+
+## 1. Economic Theory and Hypothesis
+### (a) Research Question
+### (b) Economic Theory
+### (c) Hypotheses
+### (d) Expected Signs
+
+## 2. Variable Selection
+### (a) Boruta (Quantitative only)
+### (b) Factor/indicator variables
+### (c) Final predictor set
+
+## 3. Descriptive Analysis and EDA
+
+## 4. Model Building and Selection
+
+## 5. Diagnostics and Robustness
+
+## 6. Results and Economic Interpretation
+
+## 7. Limitations and Extensions
+
+## 8. Code Quality and Reproducibility
+
 
 ## R Markdown
 
