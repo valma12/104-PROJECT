@@ -2,12 +2,12 @@
 title: "Econ 104 Course Project"
 author: "Valeria Meza, Brianna P, Sara"
 date: "2026-02-11"
-output: html_document:
-  toc: true
+output:
+  html_document:
+    toc: true
     toc_float: true
     number_sections: true
 ---
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 
@@ -20,37 +20,45 @@ library(tseries)
 library(boot)
 library(caret)
 
-set.seed(123) 
+set.seed(123)
 ```
+
 ```{r load-data}
 df <- read_csv("data/msa_housing_final.csv")
-# Sanity checks
 nrow(df)
-glimpse(df) 
+glimpse(df)
 ```
+
+```{r create-employment-rate}
+# Create employment_rate if missing (so you have 10 predictors)
+if (!"employment_rate" %in% names(df)) {
+  df <- df %>% mutate(employment_rate = 1 - unemployment_rate)
+}
+
+"employment_rate" %in% names(df)
+```
+
+
 ```{r define-vars}
-# Outcome variable
 y_var <- "med_home_value"
 
-# Quantitative predictors for Boruta (NOW 10)
 quant_vars <- c(
   "med_income",
   "log_income",
   "population",
   "log_population",
   "unemployment_rate",
-  "employment_rate",   
+  "employment_rate",
   "med_age",
   "age_squared",
   "vacancy_rate",
-  "college_share")
+  "college_share"
+)
 
 cat("Missing variables:", setdiff(c(y_var, quant_vars), names(df)), "\n")
-
-
-
-
+```
 ## Introduction
+(put your intro paragraph here)
 
 ## 1. Economic Theory and Hypothesis
 ### (a) Research Question
@@ -58,13 +66,10 @@ cat("Missing variables:", setdiff(c(y_var, quant_vars), names(df)), "\n")
 ### (c) Hypotheses
 ### (d) Expected Signs
 
-## 2. Variable Selection
-### (a) Boruta (Quantitative only)
-```
-```{r boruta, message=FALSE, warning=FALSE}
-cat("START BORUTA CHUNK\n")
-flush.console()
-  
+
+## 2. Variable Selection 
+### (a) Boruta Algorithm (Quantitative Predictors)  
+```{r boruta}
 boruta_df <- df %>%
   select(all_of(c(y_var, quant_vars))) %>%
   drop_na()
@@ -73,29 +78,81 @@ X <- boruta_df %>% select(all_of(quant_vars))
 y <- boruta_df[[y_var]]
 
 set.seed(123)
-boruta_fit <- Boruta(x = X, y = y, doTrace = 2, maxRuns = 500)
-
+boruta_fit <- Boruta(x = X, y = y, doTrace = 1, maxRuns = 100)
 boruta_fixed <- TentativeRoughFix(boruta_fit)
 
 confirmed <- getSelectedAttributes(boruta_fixed, withTentative = FALSE)
 confirmed
 
-plot(boruta_fixed, las = 2, cex.axis = 0.7) 
-
+plot(boruta_fixed, las = 2, cex.axis = 0.7)
+```
+We applied the Boruta algorithm to identify the most relevant quantitative predictors of median home value across U.S. metropolitan statistical areas. The algorithm compares the importance of each predictor to randomized shadow variables and retains only those that consistently outperform the shadows. Using 100 iterations and a fixed random seed for reproducibility, Boruta confirmed all ten candidate quantitative predictors as important. These include measures of income, population size, labor market conditions, demographic structure, housing market tightness, and educational attainment.
 
 ### (b) Factor/indicator variables
+```{r create-indicators}
+
+# -----------------------------
+# Create Indicator Variables
+# -----------------------------
+
+# 1. High-income MSA (above median income)
+income_cutoff <- median(df$med_income, na.rm = TRUE)
+
+df <- df %>%
+  mutate(
+    high_income_msa = ifelse(med_income > income_cutoff, 1, 0)
+  )
+
+table(df$high_income_msa)
+
+
+# 2. Large MSA (above median population)
+population_cutoff <- median(df$population, na.rm = TRUE)
+
+df <- df %>%
+  mutate(
+    large_msa = ifelse(population > population_cutoff, 1, 0)
+  )
+
+table(df$large_msa)
+
+
+# 3. Tight housing market (below median vacancy rate)
+vacancy_cutoff <- median(df$vacancy_rate, na.rm = TRUE)
+
+df <- df %>%
+  mutate(
+    tight_market = ifelse(vacancy_rate < vacancy_cutoff, 1, 0)
+  )
+
+table(df$tight_market)
+```
+
+```{r define-factor-vars}
+
+factor_vars <- c(
+  "high_income_msa",
+  "large_msa",
+  "tight_market"
+)
+
+factor_vars
+```
+The dataset did not contain existing categorical predictors beyond the MSA name. Therefore, we constructed economically meaningful binary indicators. We created a high-income MSA indicator (above the median income), a large metropolitan area indicator (above median population), and a tight housing market indicator (below median vacancy rate). These variables allow us to test whether structural differences across metropolitan areas are associated with variation in housing prices. 
+
 ### (c) Final predictor set
+```{r final-predictor-set}
+
+final_predictors <- c(quant_vars, factor_vars)
+
+final_predictors
+```
 
 ## 3. Descriptive Analysis and EDA
-
 ## 4. Model Building and Selection
-
 ## 5. Diagnostics and Robustness
-
 ## 6. Results and Economic Interpretation
-
 ## 7. Limitations and Extensions
-
 ## 8. Code Quality and Reproducibility
 
 
