@@ -9,9 +9,6 @@ output: html_document:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 
 library(tidyverse)
@@ -23,9 +20,36 @@ library(tseries)
 library(boot)
 library(caret)
 
-set.seed(123)
+set.seed(123) 
+```
+```{r load-data}
+df <- read_csv("data/msa_housing_final.csv")
+# Sanity checks
+nrow(df)
+glimpse(df) 
+```
+```{r define-vars}
+# Outcome variable
+y_var <- "med_home_value"
 
-```markdown
+# Quantitative predictors for Boruta (NOW 10)
+quant_vars <- c(
+  "med_income",
+  "log_income",
+  "population",
+  "log_population",
+  "unemployment_rate",
+  "employment_rate",   
+  "med_age",
+  "age_squared",
+  "vacancy_rate",
+  "college_share")
+
+cat("Missing variables:", setdiff(c(y_var, quant_vars), names(df)), "\n")
+
+
+
+
 ## Introduction
 
 ## 1. Economic Theory and Hypothesis
@@ -36,6 +60,29 @@ set.seed(123)
 
 ## 2. Variable Selection
 ### (a) Boruta (Quantitative only)
+```
+```{r boruta, message=FALSE, warning=FALSE}
+cat("START BORUTA CHUNK\n")
+flush.console()
+  
+boruta_df <- df %>%
+  select(all_of(c(y_var, quant_vars))) %>%
+  drop_na()
+
+X <- boruta_df %>% select(all_of(quant_vars))
+y <- boruta_df[[y_var]]
+
+set.seed(123)
+boruta_fit <- Boruta(x = X, y = y, doTrace = 2, maxRuns = 500)
+
+boruta_fixed <- TentativeRoughFix(boruta_fit)
+
+confirmed <- getSelectedAttributes(boruta_fixed, withTentative = FALSE)
+confirmed
+
+plot(boruta_fixed, las = 2, cex.axis = 0.7) 
+
+
 ### (b) Factor/indicator variables
 ### (c) Final predictor set
 
@@ -52,22 +99,6 @@ set.seed(123)
 ## 8. Code Quality and Reproducibility
 
 
-## R Markdown
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-```{r cars}
-summary(cars)
-```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
