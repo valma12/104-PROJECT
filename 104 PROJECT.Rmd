@@ -1,6 +1,6 @@
 ---
 title: "Econ 104 Course Project"
-author: "Valeria Meza, Brianna P, Sara"
+author: "Valeria Meza, Brianna Pineda, Sara Hameed"
 date: "2026-02-11"
 output:
   html_document:
@@ -154,7 +154,6 @@ final_predictors
 ## 6. Results and Economic Interpretation
 ## 7. Limitations and Extensions
 ## 8. Code Quality and Reproducibility
-
 
 
 
