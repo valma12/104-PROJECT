@@ -149,6 +149,98 @@ final_predictors
 ```
 
 ## 3. Descriptive Analysis and EDA
+###(a) Provide detailed description of your dataset: source, time period, sample selection, vari- able definitions 
+We are analyzing the cross-sectional variation in housing prices across various U.S. Metropolitan Statistical Areas (MSAs) using the American Community Survey (ACS) 5-Year Estimates for 2019-2023. The unit we are observing is the MSA and the final sample includes 393 MSAs. There are no missing values for the outcome variable. The dependent variable is the median home value (med_home_value). We are using the explanatory variables to capture local economic conditions, market size, housing market tightness, and demographic/human capital composition. A few variables are transformed to explain non-linearity and scale differences. 
+
+Variable Definitions on MSA level: 
+-med_home_value: median value of owner-occupied housing units (outcome) 
+-med_income: median household income 
+-population: total population 
+-unemployment_rate: unemployed / labor_force 
+-employment_rate: 1 − unemployment_rate (constructed) 
+-vacancy_rate: vacant_units / housing_units 
+-college_share: college_grad / college_total 
+-med_age: median age 
+-log_income: ln(med_income)
+-log_population: ln(population) 
+-age_squared: med_age² 
+
+###(b) Begin by providing a descriptive analysis of your variables. This should include things like histograms, quantile plots, correlation plots, boxplots, scatterplots, etc.
+```{r eda-vars}
+# Outcome + predictors you decided to keep
+eda_vars <- c(
+  y_var,
+  "med_income","log_income",
+  "population","log_population",
+  "unemployment_rate","employment_rate",
+  "med_age","age_squared",
+  "vacancy_rate","college_share"
+)
+
+# Keep only numeric columns (should be all of them here)
+eda_vars <- eda_vars[eda_vars %in% names(df)]
+eda_vars
+```
+###STEP 1 — Histograms (univariate)
+```{r eda-histograms}
+df_long <- df %>%
+  dplyr::select(all_of(eda_vars)) %>%
+  pivot_longer(cols = everything(), names_to = "variable", values_to = "value")
+
+ggplot(df_long, aes(x = value)) +
+  geom_histogram(bins = 30) +
+  facet_wrap(~variable, scales = "free") +
+  labs(title = "Histograms of Outcome and Predictors")
+```
+
+###STEP 2 — Quantile plots (QQ plots)
+```{r eda-qqplots}
+ggplot(df_long, aes(sample = value)) +
+  stat_qq() +
+  stat_qq_line() +
+  facet_wrap(~variable, scales = "free") +
+  labs(title = "QQ Plots (Normality Check)")
+```
+
+###STEP 3 — Correlation plot (multivariate)
+```{r eda-correlation}
+num_df <- df %>% dplyr::select(all_of(eda_vars)) %>% drop_na()
+
+cor_mat <- cor(num_df)
+round(cor_mat, 3)
+```
+```{r eda-corr-plot}
+GGally::ggcorr(num_df, label = TRUE, label_round = 2) +
+  labs(title = "Correlation Plot (Numeric Variables)")
+```
+
+### STEP 4 — Boxplots
+```{r eda-boxplots}
+ggplot(df_long, aes(x = variable, y = value)) +
+  geom_boxplot() +
+  coord_flip() +
+  labs(title = "Boxplots (Outliers / Spread Check)")
+```
+### STEP 5 — Scatterplots vs the outcome (med_home_value)
+```{r eda-scatter-outcome}
+predictors <- setdiff(eda_vars, y_var)
+
+for (v in predictors) {
+  p <- ggplot(df, aes(x = .data[[v]], y = .data[[y_var]])) +
+    geom_point(alpha = 0.5) +
+    geom_smooth(method = "lm", se = FALSE) +
+    labs(title = paste("Scatter:", y_var, "vs", v),
+         x = v, y = y_var)
+  print(p)
+}
+```
+-Histograms depict the distribution shape and show if logs help. 
+-QQ Plots check for normality and flag extreme tails and outliers.
+-Correlation Plots highlight multicollinearity. 
+-Boxplots show outliers and variables that are dispersed in an unusual way. 
+-Scatterplots vs. med_home_value shows the direction and possible nonlinear patterns that motivate transformations. 
+
+
 ## 4. Model Building and Selection
 ## 5. Diagnostics and Robustness
 ## 6. Results and Economic Interpretation
