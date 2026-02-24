@@ -455,7 +455,75 @@ $$
 base_model <- lm(med_home_value ~ log_income + log_population + unemployment_rate + vacancy_rate + college_share + med_age + age_squared, data = df)
 summary(base_model)
 ```
+### 2) Transform Dependent Variable
 
+```{r med_home_value histogram}
+hist(df$med_home_value)
+
+```
+The distribution is heavily skewed right, warranting a log transformation. Median house values are positive and will not interfere with a log transformation.  
+
+We'll now estimate the following log-log model:
+
+$$
+\log(\text{med home value}_i) =
+\beta_0
++ \beta_1 \log(\text{income}_i)
++ \beta_2 \log(\text{population}_i)
++ \beta_3 (\text{unemployment rate}_i)
++ \beta_4 (\text{vacancy rate}_i)
++ \beta_5 (\text{college share}_i)
++ \beta_6 (\text{med age}_i)
++ \beta_7 (\text{age squared}_i)
++ u_i
+$$
+```{r log model}
+Y <- log(df$med_home_value)
+model2 <- lm(Y ~ log_income + log_population + unemployment_rate + vacancy_rate + college_share + med_age + age_squared, data = df)
+summary(model2)
+```
+### 3) Test for multicollinearity using Variance Inflation Factors (VIF)
+ 
+```{r VIF}
+vif_values <- vif(base_model)
+vif_values
+```
+### Plot VIF values
+
+```{r VIF plot}
+barplot(vif_values, main="VIF Values", col='skyblue3', ylim=c(0, 12))
+abline(h=4.0, lwd=3, lty=2, col='red4')
+abline(h=10, lwd=3, lty=2, col='gold4')
+text(0.7, 5, "VIF 4-10", col='red4', pos=3)
+text(0.7, 11, "VIF > 10", col='gold4', pos=3)
+```
+Median age and age squared, as expected, have high VIF values > 50. To mitigate this, we will center age about the mean.
+
+```{r center age squared}
+med_age_c <- df$med_age - mean(df$med_age)
+age_c_2 <- med_age_c^2
+```
+
+### Estimate a new linear-log model with centered age squared
+```{r model3.1}
+model3.1 <- lm(med_home_value ~ log_income + log_population + unemployment_rate + vacancy_rate + college_share + med_age + age_c_2, data = df)
+summary(model3.1)
+```
+### Estimate a new log-log model with centered age squared
+```{r model 3.2}
+model3.2 <- lm(Y ~ log_income + log_population + unemployment_rate + vacancy_rate + college_share + med_age + age_c_2, data = df)
+summary(model3.2)
+vif_values2 <- vif(model3.2)
+print(vif_values2)
+```
+```{r VIF Plot 2}
+barplot(vif_values2, main="VIF Values", col='skyblue3', ylim=c(0, 12))
+abline(h=4.0, lwd=3, lty=2, col='red4')
+abline(h=10, lwd=3, lty=2, col='gold4')
+text(0.7, 5, "VIF 4-10", col='red4', pos=3)
+text(0.7, 11, "VIF > 10", col='gold4', pos=3)
+```
+Multicollinearity between median age and age squared has been mitigated by centering age squared around its mean. 
 
 ## 5. Diagnostics and Robustness
 ## 6. Results and Economic Interpretation
