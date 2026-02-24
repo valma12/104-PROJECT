@@ -432,6 +432,31 @@ colSums(is.na(df))
 There are no missing values detected in the data set. Therefore, there is no deletion of values needed and all observations were retained for analysis.  
 
 ## 4. Model Building and Selection
+
+### 1) Identify baseline model
+
+### We estimate the following baseline model: 
+
+$$
+\text{med home value}_i =
+\beta_0
++ \beta_1 \log(\text{income}_i)
++ \beta_2 \log(\text{population}_i)
++ \beta_3 (\text{unemployment rate}_i)
++ \beta_4 (\text{vacancy rate}_i)
++ \beta_5 (\text{college share}_i)
++ \beta_6 (\text{med age}_i)
++ \beta_7 (\text{age squared}_i)
++ u_i
+$$
+
+```{r base regression}
+
+base_model <- lm(med_home_value ~ log_income + log_population + unemployment_rate + vacancy_rate + college_share + med_age + age_squared, data = df)
+summary(base_model)
+```
+
+
 ## 5. Diagnostics and Robustness
 ## 6. Results and Economic Interpretation
 ## 7. Limitations and Extensions
