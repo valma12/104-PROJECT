@@ -566,6 +566,85 @@ BIC(base_model, model3.2, interaction_model)
 Based on AIC and BIC, Model3.2 is strictly preferred. Adding an interaction between income and college share only improved AIC by a value of 1.86 and BIC by a value of 5.84, reducing need for over-specification. 
 
 ## 5. Diagnostics and Robustness
+```{r diag-setup}
+library(lmtest)
+library(sandwich)
+library(car)
+library(ggplot2)
+library(dplyr)
+
+final_model <- model3.2  
+
+resid_final  <- residuals(final_model) 
+fitted_final <- fitted(final_model)
+```
+
+## 5.1 Residuals vs Fitted (linearity + heteroskedasticity patterns)
+```{r diag-resid-fitted}
+plot(final_model, which = 1)
+```
+This plot shows that residuals are centered around zero and there is no strong funnel shape. This suggests that the homoskedasticity assumption is not satosfied. There is a slight curvature in the LOESS line that indicates minor nonlinearity. 
+
+## 5.2 Homoskedasticity
+#(a) BP Test
+```{r diag-bptest} 
+bptest(final_model)
+```
+The Breusch-Pagan test rejects homoskedasticity (p < 0.05). This indicates heteroskedasticity. We will use HC standard erros for inference.  
+
+#(b) Scale-Location Plot
+```{r diag-scale-location} 
+plot(final_model, which = 3)
+``` 
+The Scale-Location plot shows a mostly stable spread across the fitted values. However, it does show a slight curvature that suggests mild heteroskedasticity. 
+
+### 5.3 Normality of residuals
+# a) Q-Q plots
+```{r diag-qq} 
+plot(final_model, which = 2)
+```
+The Q-Q plot shows that residuals are approximately normal. It shows minor deviations in the tails. 
+
+# b) Histogram of residuals
+```{r diag-resid-hist} 
+hist(resid_final, breaks = 30, main = "Histogram of Residuals", xlab = "Residuals")
+```
+The residual histogram is bell-shaped. 
+
+# c) Jarque-Bera test
+```{r diag-jb, message=FALSE} 
+library(tseries) 
+jarque.bera.test(resid_final)
+```
+The Jarque-Bera test rejects normality (p < 0.05). This suggests non-normal residuals. OLS remains unbiased and consistent with a large sample, but we rely on robust SEs for inference. 
+
+### 5.4 Outliers and influence 
+# a) Cook’s distance plot
+```{r diag-cooks} 
+plot(final_model, which = 4)
+```
+```{r cooks-threshold} 
+n <- nobs(final_model) 
+cooks_cut <- 4/n 
+cooks_cut
+```
+```{r cooks-which} 
+which(cooks.distance(final_model) > cooks_cut)
+```
+A few observations exceed the Cook's distance threshold, indicating potentially influential MSAs. These are expected in cross-sectional housing data since the values reflect real economic variation rather than mistakes. 
+
+# b) Leverage analysis
+```{r diag-leverage} 
+plot(final_model, which = 5)
+```
+The residuals vs. leverage plot shows that most observations have low leverage and residuals centered near zero, showcasing that the model fits the majority of MSAs well. A few observations, such as 383, show high leverage which means these observations represent metropolitan areas with extreme characteristics. 
+
+### 5.5 Robustness analysis: Bootstrap your model coefficient estimates (use at least 500 replications). Provide a histogram of the bootstrapped estimates and comment on the findings. How do they compare to your OLS estimates?
+
+### 5.6 Model validation: Use cross-validation to evaluate your model’s performance (5-fold or 10-fold)
+
+
+
 ## 6. Results and Economic Interpretation
 ## 7. Limitations and Extensions
 ## 8. Code Quality and Reproducibility
