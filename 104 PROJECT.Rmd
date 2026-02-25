@@ -525,6 +525,46 @@ text(0.7, 11, "VIF > 10", col='gold4', pos=3)
 ```
 Multicollinearity between median age and age squared has been mitigated by centering age squared around its mean. 
 
+### 4) Perform RESET Test to test for misspecification
+
+```{r RESET Test}
+resettest(base_model)
+resettest(log_model)
+
+```
+Both models fail RESET Test, signifying misspecification. This may call for an interaction term between income and education level. Based on economic theory, individuals with higher education levels earn higher incomes, influencing demand for high-value homes.
+
+$$
+\log(\text{med home value}_i) =
+\beta_0
++ \beta_1 \log({income}_i)
++ \beta_2 \text{college share}_i
++ \beta_3 \big[\log(\text{income}_i)\times \text{college share}_i\big]
++ \beta_4 \log(\text{population}_i)
++ \beta_5 \text{unemployment rate}_i
++ \beta_6 \text{vacancy rate}_i
++ \beta_7 \text{age}_i
++ \beta_8 \text{age sq}_i
++ u_i
+$$
+
+### Interaction Model
+
+
+```{r Interaction Model}
+interaction_model <- lm(Y ~ log_income*college_share +log_population + unemployment_rate + vacancy_rate + med_age_c + age_c_2,
+  data = df)
+summary(interaction_model)
+resettest(interaction_model)
+```
+The interaction model with log(income) times college share still fails RESET test. However, given the large cross-sectional data, over-specifying may not improve AIC and BIC implications.
+
+```{r AIC & BIC}
+AIC(base_model, model3.2, interaction_model)
+BIC(base_model, model3.2, interaction_model)
+```
+Based on AIC and BIC, Model3.2 is strictly preferred. Adding an interaction between income and college share only improved AIC by a value of 1.86 and BIC by a value of 5.84, reducing need for over-specification. 
+
 ## 5. Diagnostics and Robustness
 ## 6. Results and Economic Interpretation
 ## 7. Limitations and Extensions
