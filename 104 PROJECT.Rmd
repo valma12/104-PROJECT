@@ -565,6 +565,61 @@ BIC(base_model, model3.2, interaction_model)
 ```
 Based on AIC and BIC, Model3.2 is strictly preferred. Adding an interaction between income and college share only improved AIC by a value of 1.86 and BIC by a value of 5.84, reducing need for over-specification. 
 
+### 5) Diagnostic Plots
+
+### Cook's Distance Plot
+
+```{r Cook's Distance Plot}
+
+cooks_d <- cooks.distance(model3.2)
+
+n <- length(cooks_d)
+threshold <- 4/n
+
+plot(cooks_d,
+    type = "h",
+    main = "Cook's Distance",
+    ylab = "Cook's Distance",
+    xlab = "Observation Index")
+
+abline(h=threshold, col="blue", lty=2)
+```
+In general, most of the MSAs lie below the threshold line which indicates stability. The presence of a few influential points above the threshold suggests that certain MSAs may skew the coefficient estimates of our model due to their size which can lead to high median housing prices and high incomes. For that reason, keeping them in our model despite their influence is important because it showcases the variation present. 
+
+### Residuals vs. Fitted Plot
+```{r Residuals vs. Fitted Plot}
+plot(model3.2$fitted.values, model3.2$residuals,
+     xlab = "Fitted Values",
+     ylab = "Residuals",
+     main = "Residuals vs. Fitted",
+     pch = 19, 
+     col = "cadetblue",
+     cex = 0.6)
+
+abline(h=0, col = "blue", lty = 2)
+```
+
+The Residuals vs. Fitted Plot demonstrates that there is no pattern to indicate heteroskedasticity. Although there is minor spread towards the right of the cluster, most of the observations cluster around zero with a few outliers. This satisfies the linerarity and homoskedasticity assumptions. 
+
+### QQ-Plot
+```{r QQ-Plot}
+res <- residuals(model3.2)
+
+qqnorm(res,
+      main = "QQ Plot of Residuals",
+      pch = 19, col = "cadetblue")
+
+qqline(res, col = "blue", lwd = 2)
+
+library(ggplot2)
+ggplot(data = data.frame(residuals = residuals(model3.2)), aes(sample = residuals)) + 
+      stat_qq(color = "cadetblue", size = 1.5) + 
+      stat_qq_line(color = "blue", lwd = 1.5) +
+      labs(title = "QQ Plot of Residuals") +
+      theme_minimal() 
+```
+The QQ-Plot model stays close to the reference line, suggesting that residuals are approximately normal. However, at the tails, the  residuals start to stray from the line, showcasing that there are outliers that may influence coefficients. 
+
 ## 5. Diagnostics and Robustness
 ```{r diag-setup}
 library(lmtest)
