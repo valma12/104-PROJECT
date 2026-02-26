@@ -620,6 +620,18 @@ ggplot(data = data.frame(residuals = residuals(model3.2)), aes(sample = residual
 ```
 The QQ-Plot model stays close to the reference line, suggesting that residuals are approximately normal. However, at the tails, the  residuals start to stray from the line, showcasing that there are outliers that may influence coefficients. 
 
+### Scale-Location Plot
+```{r Scale-Location Plot}
+plot(fitted(model3.2),
+     sqrt(abs(rstandard(model3.2))), 
+     xlab = "Fitted Values",
+     ylab = "Sqrt(|Standardized residuals|)")
+
+abline(h = 0, lty = 2)
+```
+
+The random scatter of the residuals shows that this model is homoskedastic. 
+
 ## 5. Diagnostics and Robustness
 ```{r diag-setup}
 library(lmtest)
