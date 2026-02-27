@@ -707,6 +707,76 @@ plot(final_model, which = 5)
 The residuals vs. leverage plot shows that most observations have low leverage and residuals centered near zero, showcasing that the model fits the majority of MSAs well. A few observations, such as 383, show high leverage which means these observations represent metropolitan areas with extreme characteristics. 
 
 ### 5.5 Robustness analysis: Bootstrap your model coefficient estimates (use at least 500 replications). Provide a histogram of the bootstrapped estimates and comment on the findings. How do they compare to your OLS estimates?
+```{r bootstrap, message=FALSE} 
+library(boot)
+boot_fn <- function(data, indices) {   
+  d <- data[indices, ]   
+  m <- lm(formula(final_model), data = d)   
+  return(coef(m)) }  
+set.seed(1) 
+boot_out <- boot(data = df, statistic = boot_fn, R = 500)
+boot_out
+```
+```{r boot-df} 
+boot_coefs <- as.data.frame(boot_out$t) 
+colnames(boot_coefs)<- names(coef(final_model)) 
+head(boot_coefs)
+```
+#Histogram for log_income
+```{r boot-hist-income} 
+hist(boot_coefs$log_income, breaks = 30, main = "Bootstrap: log_income", xlab = "Estimate") 
+abline(v = coef(final_model)["log_income"], lwd = 3, col = "red")
+```
+#Histogram for log_population 
+```{r boot-hist-pop} 
+hist(boot_coefs$log_population, breaks = 30, main = "Bootstrap: log_population", xlab = "Estimate") 
+abline(v = coef(final_model)["log_population"], lwd = 3, col = "red")
+```
+#Histogram for unemployment_rate 
+```{r boot-hist-unemp} 
+hist(boot_coefs$unemployment_rate, breaks = 30, main = "Bootstrap: unemployment_rate", xlab = "Estimate") 
+abline(v = coef(final_model)["unemployment_rate"], lwd = 3, col = "red")
+```
+Given the histograms, the bootsrap results indicate that income is the most stable and robust predictor of the median home vales, followed by population. Unemployment rate shows a weaker robsutness and more variability. 
+
+### 5.6 Model validation: Use cross-validation to evaluate your model’s performance (5-fold or 10-fold)
+```{r cv-make-agec2}
+library(dplyr)
+
+df <- df %>%
+mutate(
+med_age_c = med_age - mean(med_age, na.rm = TRUE),
+age_c_2  = med_age_c^2
+)
+```
+
+```{r cv-5fold}
+library(caret)
+set.seed(123)
+train_control <- trainControl(method = "cv", number = 5)
+cv_fit <- train(
+formula(final_model),
+data = df,
+method = "lm",
+trControl = train_control)
+cv_fit
+```
+
+### 5.7 Robust SE
+```{r robust-vs-ols}
+library(lmtest)
+library(sandwich)
+
+# OLS (usual) coefficient table
+ols_table <- coeftest(final_model)
+
+# Robust (HC1) coefficient table
+robust_table <- coeftest(final_model, vcov = vcovHC(final_model, type = "HC1"))
+
+ols_table
+robust_table
+```
+We use HC1 robust standard errors to ensure valid inderence under possible heteroskedasticity. The coefficient signs and statistical significance is are pretty consistent with the OLS results. 
 
 ### 5.6 Model validation: Use cross-validation to evaluate your model’s performance (5-fold or 10-fold)
 
