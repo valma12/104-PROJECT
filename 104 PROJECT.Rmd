@@ -739,28 +739,53 @@ abline(v = coef(final_model)["unemployment_rate"], lwd = 3, col = "red")
 ```
 Given the histograms, the bootsrap results indicate that income is the most stable and robust predictor of the median home vales, followed by population. Unemployment rate shows a weaker robsutness and more variability. 
 
-### 5.6 Model validation: Use cross-validation to evaluate your model’s performance (5-fold or 10-fold)
+### 5.6 Model validation: Use cross-validation to evaluate your model’s performance (5-fold or 10-fold) 
 ```{r cv-make-agec2}
 library(dplyr)
 
 df <- df %>%
 mutate(
-med_age_c = med_age - mean(med_age, na.rm = TRUE),
-age_c_2  = med_age_c^2
+  med_age_c = med_age - mean(med_age, na.rm = TRUE),
+  age_c_2  = med_age_c^2
 )
 ```
+```{r cv-final-model}
+# Log dependent variable
+Y <- log(df$med_home_value)
 
+final_model <- lm(
+ Y ~ log_income + log_population + unemployment_rate + vacancy_rate +
+   college_share + med_age + age_c_2,
+ data = df
+)
+```
+```{r cv-clean-data}
+cv_df <- df %>%
+  dplyr::select(
+    med_home_value, log_income, log_population, unemployment_rate,
+    vacancy_rate, college_share, med_age, age_c_2
+) %>%
+tidyr::drop_na()
+```
 ```{r cv-5fold}
 library(caret)
 set.seed(123)
 train_control <- trainControl(method = "cv", number = 5)
+
 cv_fit <- train(
-formula(final_model),
-data = df,
-method = "lm",
-trControl = train_control)
+ log(med_home_value) ~ log_income + log_population + unemployment_rate +
+   vacancy_rate + college_share + med_age + age_c_2,
+ data = cv_df,
+ method = "lm",
+ trControl = train_control
+)
+
 cv_fit
 ```
+```{r cv-results}
+cv_fit$results
+```
+We evaluated the predictive performance of the final model using the 5-fold cross validation. The RMSE is 0.245 ans the MAE is 0.192, showing relatively small prediction errors. The R^2 is 0.703, suggesting that the model explains approximately 70% of the variation in log median home values in out of sample data. Overall, these results indicate that the model generalizes well. 
 
 ### 5.7 Robust SE
 ```{r robust-vs-ols}
