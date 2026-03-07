@@ -80,31 +80,41 @@ cat("Missing variables:", setdiff(c(y_var, quant_vars), names(df)), "\n")
 ## 2. Variable Selection 
 ### (a) Boruta Algorithm (Quantitative Predictors)  
 ```{r boruta}
-boruta_df <- df %>%
-  select(all_of(c(y_var, quant_vars))) %>%
-  drop_na()
+# Run Boruta algorithm 
+boruta_df <- df %>%   
+  dplyr::select(dplyr::all_of(c(y_var, quant_vars))) %>%
+  tidyr::drop_na()  
 
-X <- boruta_df %>% select(all_of(quant_vars))
-y <- boruta_df[[y_var]]
+set.seed(123) 
+Bor.res <- Boruta(   
+  x = boruta_df[, quant_vars],   
+  y = boruta_df[[y_var]],   
+  doTrace = 0,   
+  maxRuns = 100 )  
 
-set.seed(123)
-boruta_fit <- Boruta(x = X, y = y, doTrace = 1, maxRuns = 100)
-boruta_fixed <- TentativeRoughFix(boruta_fit)
+# Fix tentative variables 
+Bor.res.fixed <- TentativeRoughFix(Bor.res)  
+# Selected variables 
+selected_vars <- getSelectedAttributes(Bor.res.fixed, withTentative = FALSE) 
+selected_vars  
 
-confirmed <- getSelectedAttributes(boruta_fixed, withTentative = FALSE)
-confirmed
+# Plot results
+plot(Bor.res.fixed, xlab = "", xaxt = "n",      
+     main = "Boruta Algorithm: Feature Importance") 
+lz <- lapply(1:ncol(Bor.res.fixed$ImpHistory), function(i)   Bor.res.fixed$ImpHistory[is.finite(Bor.res.fixed$ImpHistory[, i]), i])
 
-plot(boruta_fixed, las = 2, cex.axis = 0.7)
+names(lz) <- colnames(Bor.res.fixed$ImpHistory) 
+Labels <- sort(sapply(lz, median))  
+
+axis(side = 1, las = 2, labels = names(Labels),      
+     at = 1:ncol(Bor.res.fixed$ImpHistory), cex.axis = 0.8)
 ```
 We applied the Boruta algorithm to identify the most relevant quantitative predictors of median home value across U.S. metropolitan statistical areas. The algorithm compares the importance of each predictor to randomized shadow variables and retains only those that consistently outperform the shadows. Using 100 iterations and a fixed random seed for reproducibility, Boruta confirmed all ten candidate quantitative predictors as important. These include measures of income, population size, labor market conditions, demographic structure, housing market tightness, and educational attainment.
 
 ### (b) Factor/indicator variables
 ```{r create-indicators}
 
-# -----------------------------
 # Create Indicator Variables
-# -----------------------------
-
 # 1. High-income MSA (above median income)
 income_cutoff <- median(df$med_income, na.rm = TRUE)
 
@@ -177,7 +187,7 @@ Variable Definitions on MSA level:
 
 ###(b) Begin by providing a descriptive analysis of your variables. This should include things like histograms, quantile plots, correlation plots, boxplots, scatterplots, etc.
 ```{r eda-vars}
-# Outcome + predictors you decided to keep
+# Outcome + predictors we decided to keep
 eda_vars <- c(
   y_var,
   "med_income","log_income",
@@ -193,23 +203,39 @@ eda_vars
 ```
 ###STEP 1 — Histograms (univariate)
 ```{r eda-histograms}
-df_long <- df %>%
-  dplyr::select(all_of(eda_vars)) %>%
-  pivot_longer(cols = everything(), names_to = "variable", values_to = "value")
+# Histograms of outcome and quantitative predictors 
+eda_df <- df %>%   
+  dplyr::select(dplyr::all_of(eda_vars)) %>%   
+  tidyr::drop_na()  
 
-ggplot(df_long, aes(x = value)) +
-  geom_histogram(bins = 30) +
-  facet_wrap(~variable, scales = "free") +
-  labs(title = "Histograms of Outcome and Predictors")
+par(mfrow = c(2, 3))   # adjust depending on number of variables 
+for (v in eda_vars) {   
+  truehist(eda_df[[v]],            
+           xlab = v,            
+           ylab = "Density",            
+           main = paste("Histogram of", v),            
+           col = "skyblue3") 
+  } 
+par(mfrow = c(1, 1))
 ```
 
 ###STEP 2 — Quantile plots (QQ plots)
-```{r eda-qqplots}
-ggplot(df_long, aes(sample = value)) +
-  stat_qq() +
-  stat_qq_line() +
-  facet_wrap(~variable, scales = "free") +
-  labs(title = "QQ Plots (Normality Check)")
+```{r eda-qqplots} 
+eda_df <- df %>%   
+  dplyr::select(dplyr::all_of(eda_vars)) %>%   
+  tidyr::drop_na()  
+
+par(mfrow = c(2,3))  # adjust depending on number of variables  
+for(v in eda_vars){    
+  qqnorm(eda_df[[v]],          
+         col = "skyblue4",          
+         pch = 20,          
+         lwd = 1,          
+         main = paste("QQ Plot:", v))    
+  qqline(eda_df[[v]],          
+         col = "red",          
+         lwd = 2)  }  
+par(mfrow = c(1,1))
 ```
 
 ###STEP 3 — Correlation plot (multivariate)
