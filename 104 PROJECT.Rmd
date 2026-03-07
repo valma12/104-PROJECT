@@ -237,7 +237,6 @@ for(v in eda_vars){
          lwd = 2)  }  
 par(mfrow = c(1,1))
 ```
-
 ###STEP 3 — Correlation plot (multivariate)
 ```{r eda-correlation}
 num_df <- df %>% dplyr::select(all_of(eda_vars)) %>% drop_na()
@@ -249,13 +248,24 @@ round(cor_mat, 3)
 GGally::ggcorr(num_df, label = TRUE, label_round = 2) +
   labs(title = "Correlation Plot (Numeric Variables)")
 ```
-
 ### STEP 4 — Boxplots
 ```{r eda-boxplots}
-ggplot(df_long, aes(x = variable, y = value)) +
-  geom_boxplot() +
-  coord_flip() +
-  labs(title = "Boxplots (Outliers / Spread Check)")
+box_df <- df %>% 
+dplyr::select(dplyr::all_of(eda_vars)) %>%
+tidyr::drop_na()
+
+par(mfrow = c(3,1))  # adjust if you have more variables
+
+for(v in eda_vars){
+
+boxplot(box_df[[v]],
+main = paste("Boxplot of", v),
+col = "skyblue3",
+ylab = v)
+
+}
+
+par(mfrow = c(1,1))
 ```
 ### STEP 5 — Scatterplots vs the outcome (med_home_value)
 ```{r eda-scatter-outcome}
@@ -278,117 +288,96 @@ for (v in predictors) {
 
 ###(c) Create a comprehensive descriptive statistics table (mean, median, std dev, min, max) 
 ```{r eda-descriptive-table}
-# Variables to summarize (outcome + predictors)
+# Variables to summarize
 eda_vars <- c(
-  "med_home_value",
-  "med_income", "log_income",
-  "population", "log_population",
-  "unemployment_rate", "employment_rate",
-  "med_age", "age_squared",
-  "vacancy_rate",
-  "college_share"
+"med_home_value",
+"med_income", "log_income",
+"population", "log_population",
+"unemployment_rate", "employment_rate",
+"med_age", "age_squared",
+"vacancy_rate",
+"college_share"
 )
 
-# Descriptive stats table
-desc_table <- df %>%
-  dplyr::select(dplyr::all_of(eda_vars)) %>%
-  summarise(across(everything(),
-    list(
-      mean = ~mean(.x, na.rm = TRUE),
-      median = ~median(.x, na.rm = TRUE),
-      sd = ~sd(.x, na.rm = TRUE),
-      min = ~min(.x, na.rm = TRUE),
-      max = ~max(.x, na.rm = TRUE),
-      n = ~sum(!is.na(.x))
-    ),
-    .names = "{.col}_{.fn}"
-  ))
+# Keep only selected variables
+desc_df <- df %>%
+dplyr::select(dplyr::all_of(eda_vars))
 
-desc_table
-```
-```{r eda-descriptive-table-pretty}
-library(tidyr)
+# Create descriptive statistics table
+desc_table <- data.frame(
+Variable = names(desc_df),
+Mean = sapply(desc_df, mean, na.rm = TRUE),
+Median = sapply(desc_df, median, na.rm = TRUE),
+SD = sapply(desc_df, sd, na.rm = TRUE),
+Min = sapply(desc_df, min, na.rm = TRUE),
+Max = sapply(desc_df, max, na.rm = TRUE),
+N = sapply(desc_df, function(x) sum(!is.na(x)))
+)
 
-desc_pretty <- desc_table %>%
-  pivot_longer(everything(),
-               names_to = c("variable","stat"),
-               names_sep = "_(?=[^_]+$)",
-               values_to = "value") %>%
-  pivot_wider(names_from = stat, values_from = value) %>%
-  arrange(variable)
+# Round results
+desc_table[, -1] <- round(desc_table[, -1], 3)
 
-desc_pretty
+# Print table
+print(desc_table)
 ```
 
 ###(d) Estimate density plots for all your variables, and show the respective fitted distributions 
 ### 1) Density plots for all variables
-```{r eda-density-all}
-df_long <- df %>%
-  dplyr::select(dplyr::all_of(eda_vars)) %>%
-  pivot_longer(cols = everything(), names_to = "variable", values_to = "value")
+```{r eda-density}
+# Density plots for all variables
+dens_df <- df %>%
+dplyr::select(dplyr::all_of(eda_vars)) %>%
+tidyr::drop_na()
 
-ggplot(df_long, aes(x = value)) +
-  geom_density() +
-  facet_wrap(~variable, scales = "free", ncol = 3) +
-  labs(title = "Density plots: outcome + predictors")
+par(mfrow = c(3, 4))  # adjust depending on number of variables
+
+for (v in eda_vars) {
+plot(density(dens_df[[v]]),
+main = paste("Density Plot of", v),
+xlab = v,
+lwd = 2,
+col = "skyblue4")
+}
+par(mfrow = c(1, 1))
 ```
-
 ### 2) Fit disttributions 
-```{r eda-fit-distributions, message=FALSE, warning=FALSE}
-# If this errors, run once in Console: install.packages("fitdistrplus")
-library(fitdistrplus)
+```{r eda-fit-distributions}
+# Density plots with fitted normal distributions
+fit_df <- df %>%
+dplyr::select(dplyr::all_of(eda_vars)) %>%
+tidyr::drop_na()
 
-# Clean vectors: numeric, finite, positive (needed for lognormal)
-fit_home <- df$med_home_value
-fit_home <- as.numeric(fit_home)
-fit_home <- fit_home[is.finite(fit_home) & fit_home > 0]
+par(mfrow = c(3, 4)) # adjust depending on number of variables
 
-fit_pop <- df$population
-fit_pop <- as.numeric(fit_pop)
-fit_pop <- fit_pop[is.finite(fit_pop) & fit_pop > 0]
+for (v in eda_vars) {
 
-# Fit distributions
-fit_norm_home <- fitdist(fit_home, "norm")
-fit_logn_home <- fitdist(fit_home, "lnorm")
+x <- fit_df[[v]]
 
-fit_norm_pop  <- fitdist(fit_pop, "norm")
-fit_logn_pop  <- fitdist(fit_pop, "lnorm")
+# Plot actual density
+plot(density(x),
+main = paste("Density Fit:", v),
+xlab = v,
+lwd = 2,
+col = "red")
 
-# Print summaries (so you see output even if plots are weird)
-summary(fit_norm_home)
-summary(fit_logn_home)
-summary(fit_norm_pop)
-summary(fit_logn_pop)
+# Add fitted normal density
+curve(dnorm(x, mean = mean(x), sd = sd(x)),
+add = TRUE,
+col = "black",
+lwd = 2)
 
-# Better plotting function (more reliable than plot(fitdist) in Rmd)
-par(mfrow = c(2,2))
+legend("topright",
+legend = c("Actual", "Normal"),
+col = c("red", "black"),
+lwd = 2,
+bty = "n")
+}
 
-denscomp(list(fit_norm_home, fit_logn_home),
-         legendtext = c("Normal", "Lognormal"),
-         main = "med_home_value: density fit")
-
-qqcomp(list(fit_norm_home, fit_logn_home),
-       legendtext = c("Normal", "Lognormal"),
-       main = "med_home_value: QQ fit")
-
-denscomp(list(fit_norm_pop, fit_logn_pop),
-         legendtext = c("Normal", "Lognormal"),
-         main = "population: density fit")
-
-qqcomp(list(fit_norm_pop, fit_logn_pop),
-       legendtext = c("Normal", "Lognormal"),
-       main = "population: QQ fit")
-
-par(mfrow = c(1,1))
+par(mfrow = c(1, 1))
 ```
-The population and home values appear right-skewed. 
+The density plot shows that several variables, especially median home value and population, are right-skewed. The fitted normal distributions do not fully capture these shapes. This indicates the departure from normality on some variables. 
 
 ###(e) Identify if there are any non-linearities within your variables. What transformations should you perform to make them linear? What would happen if you included nonlinear variables in your regression models without transforming them first? 
-We’ll test nonlinearity by:
-1) scatterplots of outcome vs predictors
-2) adding a LOESS smooth line
-3) using log transforms where needed (you already have log_income/log_population and age_squared)
-
 ### 1) Scatterplots with LOESS
 ```{r eda-nonlinearity-scatter}
 predictors_to_check <- c(
@@ -410,52 +399,67 @@ ggplot(df_long_scatter, aes(x = x, y = med_home_value)) +
   facet_wrap(~xvar, scales = "free", ncol = 2) +
   labs(title = "Nonlinearity check: Outcome vs predictors")
 ```
-Many of the relationships depicted are nonlinear, especially for population and income, due to the right-skewness and diminishing marginal effects. That is why we use log transformations for population and income and allow curvature with age_squared. 
+Many of the relationships depicted are nonlinear, especially for population and income, due to the right-skewness and diminishing marginal effects. That is why we use log transformations for population and income and allow curvature with age_squared. If nonlinear variables are included in regression models without transfromations, they model can be misspecified and could fail to capture the true relationship between the variables, leading to biased coefficient estimates. 
 
 ###(f) Comment on any outliers and/or unusual features of your variables, and then justify their removal, exclusion, or imputation
 ### 1) Outlier counts by variable (IQR rule) 
-```{r eda-outliers-iqr}
-iqr_outlier_counts <- function(x) {
-  q1 <- quantile(x, 0.25, na.rm = TRUE)
-  q3 <- quantile(x, 0.75, na.rm = TRUE)
-  iqr <- q3 - q1
-  lower <- q1 - 1.5*iqr
-  upper <- q3 + 1.5*iqr
-  sum(x < lower | x > upper, na.rm = TRUE)
-}
+```{r eda-outliers-iqr} 
+# Function to count IQR outliers 
+iqr_outlier_counts <- function(x){    
+  q1 <- quantile(x, 0.25, na.rm = TRUE)   
+  q3 <- quantile(x, 0.75, na.rm = TRUE)    
+  
+  iqr <- q3 - q1    
+  lower <- q1 - 1.5*iqr   
+  upper <- q3 + 1.5*iqr    
+  
+  sum(x < lower | x > upper, na.rm = TRUE) }  
 
-outlier_summary <- tibble(
-  variable = eda_vars,
-  outlier_count = sapply(df[eda_vars], iqr_outlier_counts)
-)
+# Create vector to store counts 
+outlier_counts <- numeric(length(eda_vars))  
 
-outlier_summary %>% arrange(desc(outlier_count))
+# Loop through variables 
+for(i in 1:length(eda_vars)){   
+  outlier_counts[i] <- iqr_outlier_counts(df[[eda_vars[i]]]) }  
+
+# Create results table 
+outlier_summary <- data.frame(   
+  Variable = eda_vars,   
+  Outlier_Count = outlier_counts )  
+
+# Sort from most to least outliers 
+outlier_summary <- outlier_summary[order(-outlier_summary$Outlier_Count),]
+print(outlier_summary)
 ```
-
 ### 2) Biggest outliers for population + med_home_value
-```{r eda-outliers-top}
-df %>%
-  dplyr::select(NAME, med_home_value, population, vacancy_rate, med_income) %>%
-  arrange(desc(population)) %>%
-  slice(1:10)
+```{r eda-outliers-top} 
+# Look at largest observations for key variables 
+outlier_check <- df[, c("NAME","med_home_value","population","vacancy_rate","med_income")]
+
+# Sort by population (largest first) 
+outlier_check <- outlier_check[order(-outlier_check$population), ]
+
+# Show top 10 
+head(outlier_check, 10)
 ```
-Population and home vales showcase extreme observations that correspond to very large metro areas lije L.A. and NYC. They are not data errors, they are real-world variation, so we retain the values. To reduce their impact and improve linearity, we use log transformations (log_population and log_income) and use robust standard errors later on. 
+Population and home vales showcase extreme observations that correspond to very large metro areas like L.A. and NYC. They are not data errors, they are real-world variation, so we retain the values. To reduce their impact and improve linearity, we use log transformations (log_population and log_income) and use robust standard errors later on. 
 
 ###(g) If you have any NAs, remove them or impute them using any of the methods discussed in class, but make sure to justify your choice
 ### 1) Missingness table 
 ```{r eda-missingness}
-na_table <- tibble(
-  variable = names(df),
-  na_count = sapply(df, function(x) sum(is.na(x))),
-  na_share = sapply(df, function(x) mean(is.na(x)))
-) %>% arrange(desc(na_count))
+na_table <- data.frame(
+  Variable = names(df),
+  NA_Count = sapply(df, function(x) sum(is.na(x))),
+  NA_Share = sapply(df, function(x) mean(is.na(x)))
+)
 
-na_table
+na_table$NA_Share <- round(na_table$NA_Share, 3)
+
+na_table <- na_table[order(-na_table$NA_Count), ]
+
+print(na_table)
 ```
-```{r check-missing}
-colSums(is.na(df))
-```
-There are no missing values detected in the data set. Therefore, there is no deletion of values needed and all observations were retained for analysis.  
+There are no missing values detected in the data set. Therefore, there is no deletion of values needed and all observations were retained for analysis. 
 
 ## 4. Model Building and Selection
 
