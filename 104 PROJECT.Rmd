@@ -859,6 +859,26 @@ This model suggests that housing prices in metropolitan statistical areas in the
 MSAs that are economically prosperous may exhibit rapidly increasing housing demand and housing prices. This could indicate the need for policies to increase housing supply such as less restrictive zoning policies, subsidies to housing construction, or investment in affordable housing programs. Not to mention, the impact of labor market conditions also suggests that policies that lead to increased stability for labor markets and greater economic development may lead to decreased housing costs and make housing more accessible for residents. 
 
 ## 7. Limitations and Extensions
+
+### (a) Discuss key limitations of your analysis (data quality, methodology, scope)
+
+One key limitation of our analysis is the lack of panel data, and the nature of our dataset, which does not allow us to examine long-run changes in housing values or housing across the metropolitan statistical areas (MSAs) we’ve included. The lack of multi-period data limits our scope of research to single moments in time, not allowing for adjustments to the housing market caused by migration patterns or cyclical housing price fluctuations.
+
+
+### (b) Identify potential sources of bias and how they might affect conclusions
+
+The model may be subject to omitted variable bias, as it does not include certain factors that influence housing supply and may be correlated with the included predictors. Housing supply constraints, such as zoning restrictions and land-use regulations, are hard to quantify and are not included in our selected data set. These restrictions, as mentioned by Saiz, may be correlated with education and income levels. Regions with higher average levels of education and income tend to have more rigid restrictions, leading to inelastic housing supply.
+
+
+### (c) Suggest concrete extensions for future research
+
+One of the most helpful extensions for future research on the effects of local economic conditions on housing values would be the inclusion of panel data. Panel data would allow us to examine the same metropolitan areas over several years, allowing for better analysis of the trends of housing prices. The inclusion of panel data would also help identify how changes in labor market conditions affect housing demand. Another useful variable to include in future research would be the presence of zoning laws. Since it would be difficult to quantify the presence of zoning laws, an indicator variable could be used to indicate whether such laws restrict construction. Alternatively, a variable that measures the specific building size restrictions could be used to represent certain zoning restrictions.   
+
+
+### (d) Comment on the generalizability of your results
+
+Our model estimates the statistical relationships between local economic conditions such as income, unemployment, population, college share, and age of inhabitants and median housing prices across metropolitan areas. Prior research suggests that labor market sorting and local housing supply conditions play a role in the variation of housing prices (Diamond, 2016). Given that the dataset is restricted to metropolitan statistical areas (MSAs), one should proceed with caution when using the findings of this research to interpret variation in housing prices in more rural regions or those outside of the United States. 
+
 ## 8. Code Quality and Reproducibility
 
 ## Sources
