@@ -595,73 +595,6 @@ BIC(base_model, model3.2, interaction_model)
 ```
 Based on AIC and BIC, Model3.2 is strictly preferred. Adding an interaction between income and college share only improved AIC by a value of 1.86 and BIC by a value of 5.84, reducing need for over-specification. 
 
-### 5) Diagnostic Plots
-
-### Cook's Distance Plot
-
-```{r Cook's Distance Plot}
-
-cooks_d <- cooks.distance(model3.2)
-
-n <- length(cooks_d)
-threshold <- 4/n
-
-plot(cooks_d,
-    type = "h",
-    main = "Cook's Distance",
-    ylab = "Cook's Distance",
-    xlab = "Observation Index")
-
-abline(h=threshold, col="blue", lty=2)
-```
-In general, most of the MSAs lie below the threshold line which indicates stability. The presence of a few influential points above the threshold suggests that certain MSAs may skew the coefficient estimates of our model due to their size which can lead to high median housing prices and high incomes. For that reason, keeping them in our model despite their influence is important because it showcases the variation present. 
-
-### Residuals vs. Fitted Plot
-```{r Residuals vs. Fitted Plot}
-plot(model3.2$fitted.values, model3.2$residuals,
-     xlab = "Fitted Values",
-     ylab = "Residuals",
-     main = "Residuals vs. Fitted",
-     pch = 19, 
-     col = "cadetblue",
-     cex = 0.6)
-
-abline(h=0, col = "blue", lty = 2)
-```
-
-The Residuals vs. Fitted Plot demonstrates that there is no pattern to indicate heteroskedasticity. Although there is minor spread towards the right of the cluster, most of the observations cluster around zero with a few outliers. This satisfies the linerarity and homoskedasticity assumptions. 
-
-### QQ-Plot
-```{r QQ-Plot}
-res <- residuals(model3.2)
-
-qqnorm(res,
-      main = "QQ Plot of Residuals",
-      pch = 19, col = "cadetblue")
-
-qqline(res, col = "blue", lwd = 2)
-
-library(ggplot2)
-ggplot(data = data.frame(residuals = residuals(model3.2)), aes(sample = residuals)) + 
-      stat_qq(color = "cadetblue", size = 1.5) + 
-      stat_qq_line(color = "blue", lwd = 1.5) +
-      labs(title = "QQ Plot of Residuals") +
-      theme_minimal() 
-```
-The QQ-Plot model stays close to the reference line, suggesting that residuals are approximately normal. However, at the tails, the  residuals start to stray from the line, showcasing that there are outliers that may influence coefficients. 
-
-### Scale-Location Plot
-```{r Scale-Location Plot}
-plot(fitted(model3.2),
-     sqrt(abs(rstandard(model3.2))), 
-     xlab = "Fitted Values",
-     ylab = "Sqrt(|Standardized residuals|)")
-
-abline(h = 0, lty = 2)
-```
-
-The random scatter of the residuals shows that this model is homoskedastic. 
-
 ## 5. Diagnostics and Robustness
 ```{r diag-setup}
 library(lmtest)
@@ -697,32 +630,58 @@ The Scale-Location plot shows a mostly stable spread across the fitted values. H
 
 ### 5.3 Normality of residuals
 # a) Q-Q plots
-```{r diag-qq} 
-plot(final_model, which = 2)
+```{r diag-qq}
+qqnorm(resid_final,        
+col = "skyblue4",        
+pch = 20,        
+lwd = 1,        
+main = "QQ Normal Plot")
+
+qqline(resid_final,        
+col = "red",        
+lwd = 2)
 ```
 The Q-Q plot shows that residuals are approximately normal. It shows minor deviations in the tails. 
 
 # b) Histogram of residuals
 ```{r diag-resid-hist} 
-hist(resid_final, breaks = 30, main = "Histogram of Residuals", xlab = "Residuals")
+truehist(resid_final,          
+         col = "skyblue3",          
+         xlab = "Residuals",          
+         ylab = "Density",          
+         main = "Histogram of Residuals")  
+
+xr <- rnorm(100000, mean(resid_final), sd(resid_final))
+lines(density(xr), col = "black", lwd = 2) 
+lines(density(resid_final), col = "red", lwd = 2)  
+
+legend("topright",        
+       c("Actual", "Normal"),        
+       fill = c("red", "black"),        
+       bty = "n")
 ```
-The residual histogram is bell-shaped. 
+
+The residual histogram is bell-shaped but they do not perfectly follow a normal distribution. This aligns with the slight tail deviations seen in the Q-Q plot. 
 
 # c) Jarque-Bera test
 ```{r diag-jb, message=FALSE} 
-library(tseries) 
 jarque.bera.test(resid_final)
 ```
 The Jarque-Bera test rejects normality (p < 0.05). This suggests non-normal residuals. OLS remains unbiased and consistent with a large sample, but we rely on robust SEs for inference. 
 
 ### 5.4 Outliers and influence 
 # a) Cook’s distance plot
-```{r diag-cooks} 
-plot(final_model, which = 4)
+```{r diag-cooks}
+plot(cooks.distance(final_model),
+type = "h",
+main = "Cook's Distance",
+ylab = "Cook's Distance",
+xlab = "Observation")
+
+abline(h = 4 / nobs(final_model), col = "red", lwd = 2)
 ```
 ```{r cooks-threshold} 
-n <- nobs(final_model) 
-cooks_cut <- 4/n 
+cooks_cut <- 4 / nobs(final_model) 
 cooks_cut
 ```
 ```{r cooks-which} 
@@ -737,69 +696,89 @@ plot(final_model, which = 5)
 The residuals vs. leverage plot shows that most observations have low leverage and residuals centered near zero, showcasing that the model fits the majority of MSAs well. A few observations, such as 383, show high leverage which means these observations represent metropolitan areas with extreme characteristics. 
 
 ### 5.5 Robustness analysis: Bootstrap your model coefficient estimates (use at least 500 replications). Provide a histogram of the bootstrapped estimates and comment on the findings. How do they compare to your OLS estimates?
-```{r bootstrap, message=FALSE} 
-library(boot)
-boot_fn <- function(data, indices) {   
-  d <- data[indices, ]   
-  m <- lm(formula(final_model), data = d)   
-  return(coef(m)) }  
-set.seed(1) 
-boot_out <- boot(data = df, statistic = boot_fn, R = 500)
+### Step 1: Create estimation dataset
+```{r boot-data}
+boot_df <- model.frame(final_model)
+head(boot_df)
+```
+### Step 2: Bootstrap coefficients
+```{r bootstrap}
+boot_fn <- function(data, indices) {
+ d <- data[indices, ]
+ m <- lm(formula(final_model), data = d)
+ coef(m)
+}
+
+set.seed(123)
+boot_out <- boot(data = boot_df, statistic = boot_fn, R = 500)
+
 boot_out
 ```
-```{r boot-df} 
-boot_coefs <- as.data.frame(boot_out$t) 
-colnames(boot_coefs)<- names(coef(final_model)) 
+### Step 3: Put results into a data frame
+```{r boot-df}
+boot_coefs <- as.data.frame(boot_out$t)
+colnames(boot_coefs) <- names(coef(final_model))
+
 head(boot_coefs)
 ```
-#Histogram for log_income
-```{r boot-hist-income} 
-hist(boot_coefs$log_income, breaks = 30, main = "Bootstrap: log_income", xlab = "Estimate") 
-abline(v = coef(final_model)["log_income"], lwd = 3, col = "red")
+### Step 4: Histogram of bootstrap estimates
+```{r boot-hist-income}
+hist(boot_coefs$log_income,
+    breaks = 30,
+    main = "Bootstrap: log_income",
+    xlab = "Estimate",
+    col = "skyblue3")
+
+abline(v = coef(final_model)["log_income"], col = "red", lwd = 3)
 ```
-#Histogram for log_population 
-```{r boot-hist-pop} 
-hist(boot_coefs$log_population, breaks = 30, main = "Bootstrap: log_population", xlab = "Estimate") 
-abline(v = coef(final_model)["log_population"], lwd = 3, col = "red")
+```{r boot-hist-pop}
+hist(boot_coefs$log_population,
+    breaks = 30,
+    main = "Bootstrap: log_population",
+    xlab = "Estimate",
+    col = "skyblue3")
+
+abline(v = coef(final_model)["log_population"], col = "red", lwd = 3)
 ```
-#Histogram for unemployment_rate 
-```{r boot-hist-unemp} 
-hist(boot_coefs$unemployment_rate, breaks = 30, main = "Bootstrap: unemployment_rate", xlab = "Estimate") 
-abline(v = coef(final_model)["unemployment_rate"], lwd = 3, col = "red")
+```{r boot-hist-unemp}
+hist(boot_coefs$unemployment_rate,
+    breaks = 30,
+    main = "Bootstrap: unemployment_rate",
+    xlab = "Estimate",
+    col = "skyblue3")
+
+abline(v = coef(final_model)["unemployment_rate"], col = "red", lwd = 3)
 ```
 Given the histograms, the bootsrap results indicate that income is the most stable and robust predictor of the median home vales, followed by population. Unemployment rate shows a weaker robsutness and more variability. 
 
-### 5.6 Model validation: Use cross-validation to evaluate your model’s performance (5-fold or 10-fold) 
+### 5.6 Model validation: Use cross-validation to evaluate your model’s performance (5-fold or 10-fold)
+### Step 1: Create centered age term
 ```{r cv-make-agec2}
-library(dplyr)
-
 df <- df %>%
-mutate(
-  med_age_c = med_age - mean(med_age, na.rm = TRUE),
-  age_c_2  = med_age_c^2
-)
+ mutate(
+   med_age_c = med_age - mean(med_age, na.rm = TRUE),
+   age_c_2 = med_age_c^2
+ )
 ```
-```{r cv-final-model}
-# Log dependent variable
-Y <- log(df$med_home_value)
-
-final_model <- lm(
- Y ~ log_income + log_population + unemployment_rate + vacancy_rate +
-   college_share + med_age + age_c_2,
- data = df
-)
-```
+### Step 2: Create clean CV dataset
 ```{r cv-clean-data}
 cv_df <- df %>%
-  dplyr::select(
-    med_home_value, log_income, log_population, unemployment_rate,
-    vacancy_rate, college_share, med_age, age_c_2
-) %>%
-tidyr::drop_na()
+ dplyr::select(
+   med_home_value,
+   log_income,
+   log_population,
+   unemployment_rate,
+   vacancy_rate,
+   college_share,
+   med_age,
+   age_c_2
+ ) %>%
+ tidyr::drop_na()
 ```
+### Step 3: Run 5-fold CV
 ```{r cv-5fold}
-library(caret)
 set.seed(123)
+
 train_control <- trainControl(method = "cv", number = 5)
 
 cv_fit <- train(
@@ -812,6 +791,7 @@ cv_fit <- train(
 
 cv_fit
 ```
+### Step 4: Show CV results
 ```{r cv-results}
 cv_fit$results
 ```
@@ -819,20 +799,17 @@ We evaluated the predictive performance of the final model using the 5-fold cros
 
 ### 5.7 Robust SE
 ```{r robust-vs-ols}
-library(lmtest)
-library(sandwich)
-
-# OLS (usual) coefficient table
 ols_table <- coeftest(final_model)
 
-# Robust (HC1) coefficient table
-robust_table <- coeftest(final_model, vcov = vcovHC(final_model, type = "HC1"))
+robust_table <- coeftest(
+final_model,
+vcov = vcovHC(final_model, type = "HC1")
+)
 
 ols_table
 robust_table
 ```
 We use HC1 robust standard errors to ensure valid inderence under possible heteroskedasticity. The coefficient signs and statistical significance is are pretty consistent with the OLS results. 
-
 
 ## 6. Results and Economic Interpretation
 
