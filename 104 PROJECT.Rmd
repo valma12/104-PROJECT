@@ -609,13 +609,13 @@ resid_final  <- residuals(final_model)
 fitted_final <- fitted(final_model)
 ```
 
-## 5.1 Residuals vs Fitted (linearity + heteroskedasticity patterns)
+### 5.1 Residuals vs Fitted (linearity + heteroskedasticity patterns)
 ```{r diag-resid-fitted}
 plot(final_model, which = 1)
 ```
 This plot shows that residuals are centered around zero and there is no strong funnel shape. This suggests that the homoskedasticity assumption is not satosfied. There is a slight curvature in the LOESS line that indicates minor nonlinearity. 
 
-## 5.2 Homoskedasticity
+### 5.2 Homoskedasticity
 #(a) BP Test
 ```{r diag-bptest} 
 bptest(final_model)
@@ -629,7 +629,7 @@ plot(final_model, which = 3)
 The Scale-Location plot shows a mostly stable spread across the fitted values. However, it does show a slight curvature that suggests mild heteroskedasticity. 
 
 ### 5.3 Normality of residuals
-# a) Q-Q plots
+#(a) Q-Q plots
 ```{r diag-qq}
 qqnorm(resid_final,        
 col = "skyblue4",        
@@ -643,7 +643,7 @@ lwd = 2)
 ```
 The Q-Q plot shows that residuals are approximately normal. It shows minor deviations in the tails. 
 
-# b) Histogram of residuals
+#(b) Histogram of residuals
 ```{r diag-resid-hist} 
 truehist(resid_final,          
          col = "skyblue3",          
@@ -663,14 +663,14 @@ legend("topright",
 
 The residual histogram is bell-shaped but they do not perfectly follow a normal distribution. This aligns with the slight tail deviations seen in the Q-Q plot. 
 
-# c) Jarque-Bera test
+#(c) Jarque-Bera test
 ```{r diag-jb, message=FALSE} 
 jarque.bera.test(resid_final)
 ```
 The Jarque-Bera test rejects normality (p < 0.05). This suggests non-normal residuals. OLS remains unbiased and consistent with a large sample, but we rely on robust SEs for inference. 
 
 ### 5.4 Outliers and influence 
-# a) Cook’s distance plot
+#(a) Cook’s distance plot
 ```{r diag-cooks}
 plot(cooks.distance(final_model),
 type = "h",
@@ -689,19 +689,19 @@ which(cooks.distance(final_model) > cooks_cut)
 ```
 A few observations exceed the Cook's distance threshold, indicating potentially influential MSAs. These are expected in cross-sectional housing data since the values reflect real economic variation rather than mistakes. 
 
-# b) Leverage analysis
+#(b) Leverage analysis
 ```{r diag-leverage} 
 plot(final_model, which = 5)
 ```
 The residuals vs. leverage plot shows that most observations have low leverage and residuals centered near zero, showcasing that the model fits the majority of MSAs well. A few observations, such as 383, show high leverage which means these observations represent metropolitan areas with extreme characteristics. 
 
 ### 5.5 Robustness analysis: Bootstrap your model coefficient estimates (use at least 500 replications). Provide a histogram of the bootstrapped estimates and comment on the findings. How do they compare to your OLS estimates?
-### Step 1: Create estimation dataset
+# Step 1: Create estimation dataset
 ```{r boot-data}
 boot_df <- model.frame(final_model)
 head(boot_df)
 ```
-### Step 2: Bootstrap coefficients
+# Step 2: Bootstrap coefficients
 ```{r bootstrap}
 boot_fn <- function(data, indices) {
  d <- data[indices, ]
@@ -714,14 +714,14 @@ boot_out <- boot(data = boot_df, statistic = boot_fn, R = 500)
 
 boot_out
 ```
-### Step 3: Put results into a data frame
+# Step 3: Put results into a data frame
 ```{r boot-df}
 boot_coefs <- as.data.frame(boot_out$t)
 colnames(boot_coefs) <- names(coef(final_model))
 
 head(boot_coefs)
 ```
-### Step 4: Histogram of bootstrap estimates
+# Step 4: Histogram of bootstrap estimates
 ```{r boot-hist-income}
 hist(boot_coefs$log_income,
     breaks = 30,
@@ -752,7 +752,7 @@ abline(v = coef(final_model)["unemployment_rate"], col = "red", lwd = 3)
 Given the histograms, the bootsrap results indicate that income is the most stable and robust predictor of the median home vales, followed by population. Unemployment rate shows a weaker robsutness and more variability. 
 
 ### 5.6 Model validation: Use cross-validation to evaluate your model’s performance (5-fold or 10-fold)
-### Step 1: Create centered age term
+# Step 1: Create centered age term
 ```{r cv-make-agec2}
 df <- df %>%
  mutate(
@@ -760,7 +760,7 @@ df <- df %>%
    age_c_2 = med_age_c^2
  )
 ```
-### Step 2: Create clean CV dataset
+# Step 2: Create clean CV dataset
 ```{r cv-clean-data}
 cv_df <- df %>%
  dplyr::select(
@@ -775,7 +775,7 @@ cv_df <- df %>%
  ) %>%
  tidyr::drop_na()
 ```
-### Step 3: Run 5-fold CV
+# Step 3: Run 5-fold CV
 ```{r cv-5fold}
 set.seed(123)
 
@@ -791,7 +791,7 @@ cv_fit <- train(
 
 cv_fit
 ```
-### Step 4: Show CV results
+# Step 4: Show CV results
 ```{r cv-results}
 cv_fit$results
 ```
