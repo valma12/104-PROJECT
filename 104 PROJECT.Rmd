@@ -69,9 +69,9 @@ cat("Missing variables:", setdiff(c(y_var, quant_vars), names(df)), "\n")
      In the long run, persistent differences in workforce education levels play a role in creating differences in housing demand across metropolitan regions. Economic theory suggests that high-skill workers or those with higher education attainment gravitate toward productive metropolises with higher wages and more employment opportunities, even when housing is more expensive (Diamond, 2016). This sorting pattern creates high-skill clusters in cities with firms that require such workers. Those within these clusters earn higher income and increased purchasing power, so their willingness to pay for more expensive homes rises. With a limited housing supply and high demand for property, competitor buyers bid up the values of homes. As a result, these metropolises with clusters of highly educated workers sustain higher median housing prices.
 
 ### (c) Hypotheses
-  Metropolitan statistical areas (MSAs) with higher socio-economic status–characterized by lower unemployment rate, higher median incomes, and higher education attainment–demonstrate higher median housing prices. 
+  Metropolitan statistical areas (MSAs) with higher socio-economic status, characterized by lower unemployment rate, higher median incomes, and higher education attainment, demonstrate higher median housing prices. 
 ### (d) Expected Signs
-  The coefficient of unemployment rate is expected to be negative because greater unemployment reduces household income as well as the ability to borrow leading to less demand for housing. With diminished ability to pay for housing, either due, housing prices reflect lower purchasing power. Similarly, as vacancy rates increase, housing prices decrease due to greater supply of housing units which would lead to a negative coefficient to highlight its negative relationship with housing values. 
+  The coefficient of unemployment rate is expected to be negative because greater unemployment reduces household income as well as the ability to borrow leading to less demand for housing. With diminished ability to pay for housing, housing prices reflect lower purchasing power. Similarly, as vacancy rates increase, housing prices decrease due to greater supply of housing units which would lead to a negative coefficient to highlight its negative relationship with housing values. 
   Higher median incomes are associated with higher housing prices due to the income effect. Higher salaries lead to greater purchasing power for consumers as well as improved access to credit which leads to greater demand for higher priced housing. Thus, the coefficient for median income would be positive to reflect the positive effect. In like manner, higher college rates are associated with the potential for larger incomes resulting in a positive coefficient for college rates. Population would also exhibit a positive effect on housing incomes as it would place constraints on housing supply, leading to higher median housing prices. 
   Even though factors such as land-use restrictions could constrain housing supply, these are the expected effects of the most influential variables from the data set. 
 
@@ -758,7 +758,7 @@ df <- df %>%
  mutate(
    med_age_c = med_age - mean(med_age, na.rm = TRUE),
    age_c_2 = med_age_c^2
- )
+ )74      
 ```
 # Step 2: Create clean CV dataset
 ```{r cv-clean-data}
